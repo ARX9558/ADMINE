@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin OTP Panel</title>
+  <style>
+    body{font-family: Arial, sans-serif;background:#f4f6f8;padding:20px;}
+    .container{max-width:760px;margin:0 auto;background:#fff;padding:18px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06);}
+    h2{margin-top:0;}
+    input[type="text"]{padding:10px;width:60%;margin-right:8px;border:1px solid #ccc;border-radius:6px;}
+    button{padding:10px 12px;border-radius:6px;border:0;background:#1976d2;color:#fff;cursor:pointer;}
+    ul{list-style:none;padding:0;margin-top:16px;}
+    li{padding:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;}
+    .small{font-size:13px;color:#666;}
+    .danger{background:#e53935;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Admin Panel — OTP Manager</h2>
+
+    <div>
+      <input id="otpInput" type="text" placeholder="Enter OTP (e.g. 123456)" />
+      <button id="addBtn">Add OTP</button>
+    </div>
+
+    <ul id="otpList"></ul>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIBFZhgYpHOg3Ah2oSv3Xf2lMWBDx7fSc",
+      authDomain: "arx20-9c250.firebaseapp.com",
+      databaseURL: "https://arx20-9c250-default-rtdb.firebaseio.com",
+      projectId: "arx20-9c250",
+      storageBucket: "arx20-9c250.firebasestorage.app",
+      messagingSenderId: "637239990895",
+      appId: "1:637239990895:web:ad2e525ca8d4b0aec80b9a",
+      measurementId: "G-KHF7Q6PEGE"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const otpsRef = db.ref('otps');
+
+    const otpInput = document.getElementById('otpInput');
+    const addBtn = document.getElementById('addBtn');
+    const otpList = document.getElementById('otpList');
+
+    addBtn.addEventListener('click', () => {
+      const val = otpInput.value.trim();
+      if(!val){
+        alert('OTP দিন');
+        return;
+      }
+      const newRef = otpsRef.push();
+      newRef.set({
+        value: val,
+        timestamp: Date.now()
+      }).then(() => {
+        otpInput.value = '';
+      }).catch(err => {
+        alert('Error: ' + err.message);
+      });
+    });
+
+    otpsRef.orderByChild('timestamp').on('value', snap => {
+      otpList.innerHTML = '';
+      const items = [];
+      snap.forEach(child => {
+        items.push({ key: child.key, val: child.val() });
+      });
+      items.reverse().forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div>
+            <div><strong>${item.val.value}</strong> <span class="small">(#${item.key.slice(0,6)})</span></div>
+            <div class="small">${new Date(item.val.timestamp).toLocaleString()}</div>
+          </div>
+          <div>
+            <button class="deleteBtn danger" data-key="${item.key}">Delete</button>
+          </div>
+        `;
+        otpList.appendChild(li);
+      });
+
+      document.querySelectorAll('.deleteBtn').forEach(btn=>{
+        btn.addEventListener('click', e=>{
+          const key = e.currentTarget.getAttribute('data-key');
+          if(!confirm('আপনি নিশ্চিত? OTP মুছে ফেলতে চান?')) return;
+          otpsRef.child(key).remove().catch(err=>alert('Error: '+err.message));
+        });
+      });
+    });
+  </script>
+</body>
+</html>
